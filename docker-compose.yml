@@ -16,7 +16,7 @@ services:
       timeout: 3s
       retries: 5
     ports:
-      - 5432:5432
+      - 5434:5432
     command: [ "postgres", "-c", "max_prepared_transactions=100" ]
     networks:
       - niffler-network
@@ -114,7 +114,7 @@ services:
     container_name: userdata.niffler.dc
     image: ${PREFIX}/niffler-userdata-docker:latest
     ports:
-      - 8089:8089
+      - 8099:8089
     restart: always
     depends_on:
       auth.niffler.dc:

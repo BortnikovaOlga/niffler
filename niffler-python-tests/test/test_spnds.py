@@ -1,55 +1,48 @@
-from selene import browser, have
-from page.marks import Pages, TestData
-from page.pages import SpendingTable, MainPage, Dialog, Toolbar, SpendingPage
-
+from selene import have
+from page.marks import TestData
 
 TEST_CATEGORY = "образование"
 
 
-@Pages.main_page
 class TestSpendings:
-
-    def test_spending_title_exists(self):
-        """Проверка, на главной странице есть заголовок истории расходов."""
-        browser.element(MainPage.spendings_title).should(have.text('History of Spendings'))
-
-    @TestData.category(TEST_CATEGORY)
-    @TestData.spends({
-        "amount": "58000.0",
+    test_spend = {
+        "amount": "58000",
         "description": "QA.GURU Python Advanced 2",
         "category": {"name": TEST_CATEGORY},
         "spendDate": "2025-02-17T18:39:27.955Z",
         "currency": "RUB"
-    })
-    def test_spending_should_be_deleted(self, category, spends):
-        """Проверка, что пункт расхода удаляется из истории."""
-        browser.element(SpendingTable.first_row).should(have.text("QA.GURU Python Advanced 2"))
-        browser.element(SpendingTable.title_checkbox).click()
-        browser.element(MainPage.delete_button).click()
-        browser.element(Dialog.confirm).click()
+    }
 
-        browser.all(SpendingTable.rows).should(have.size(0))
-        browser.element(MainPage.spendings).should(have.text("There are no spendings"))
+    def test_spending_title_exists(self, main_page):
+        """Проверка, на главной странице есть заголовок истории расходов."""
+        main_page \
+            .spendings_title.should(have.text('History of Spendings'))
 
     @TestData.category(TEST_CATEGORY)
-    def test_spending_may_be_cancel(self, category):
+    def test_spending_may_be_cancel(self, category, main_page):
         """Проверка, что при добавлении расхода есть отмена добавления, расход не добавляется."""
-        browser.element(Toolbar.new_spending).click()
-        browser.element(SpendingPage.amount).set_value("1001")
-        browser.element(SpendingPage.description).set_value("1001")
-        browser.element(SpendingPage.category(TEST_CATEGORY)).click()
-        browser.element(SpendingPage.cancel).click()
+        main_page \
+            .toolbar.new_spending_click() \
+            .input_spending(self.test_spend) \
+            .cancel.click()
+        main_page.spendings.should(have.text("There are no spendings"))
 
-        browser.all(SpendingTable.rows).should(have.size(0))
-
-    def test_spending_should_be_add(self):
+    def test_spending_should_be_add(self, main_page):
         """Проверка, что при добавлении расход сохраняется и присутствует в истории расходов."""
-        browser.element(Toolbar.new_spending).click()
-        browser.element(SpendingPage.amount).set_value("58000")
-        browser.element(SpendingPage.description).set_value("QA.GURU Python Advanced 2")
-        browser.element(SpendingPage.category(TEST_CATEGORY)).click()
-        browser.element(SpendingPage.save).click()
+        main_page \
+            .toolbar.new_spending_click() \
+            .input_spending(self.test_spend) \
+            .save.click()
+        main_page \
+            .table_first.should(have.text(TEST_CATEGORY).and_(have.text(self.test_spend["amount"]).and_(have.text(
+            self.test_spend["description"]))))
 
-        browser.element(SpendingTable.first_row).should(have.text(TEST_CATEGORY))
-        browser.element(SpendingTable.first_row).should(have.text('58000'))
-        browser.element(SpendingTable.first_row).should(have.text("QA.GURU Python Advanced 2"))
+    @TestData.category(TEST_CATEGORY)
+    @TestData.spends(test_spend)
+    def test_spending_should_be_deleted(self, category, spends, main_page):
+        """Проверка, что пункт расхода удаляется из истории."""
+        main_page \
+            .table_first.should(have.text("QA.GURU Python Advanced 2"))
+        main_page \
+            .delete_spendings() \
+            .spendings.should(have.text("There are no spendings"))

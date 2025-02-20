@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from selene import browser
 from client.spends_api import SpendsApi
 from client.categories_api import CategoriesApi
+from page.pages import ProfilePage, MainPage
 
 
 @pytest.fixture(scope="session")
@@ -81,9 +82,12 @@ def spends(request, spends_api):
 
 @pytest.fixture()
 def main_page(auth, frontend_url):
+    browser.driver.maximize_window()
     browser.open(frontend_url)
+    return MainPage()
 
 
 @pytest.fixture()
 def profile_page(auth, frontend_url):
     browser.open(f"{frontend_url}/profile")
+    return ProfilePage()

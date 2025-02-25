@@ -1,17 +1,19 @@
+import datetime
+
 from selene import have
+
+from model.spendings import Spend, Currency, Category, str_total
 from page.marks import TestData
 
 TEST_CATEGORY = "образование"
 
 
 class TestSpendings:
-    test_spend = {
-        "amount": "58000",
-        "description": "QA.GURU Python Advanced 2",
-        "category": {"name": TEST_CATEGORY},
-        "spendDate": "2025-02-17T18:39:27.955Z",
-        "currency": "RUB"
-    }
+    test_spend = Spend(amount=58000,
+                       description="QA.GURU Python Advanced 2",
+                       category=Category(name=TEST_CATEGORY),
+                       spendDate=datetime.date(month=2, day=15, year=2025),
+                       currency=Currency.EUR.value)
 
     def test_spending_title_exists(self, main_page):
         """Проверка, на главной странице есть заголовок истории расходов."""
@@ -32,17 +34,33 @@ class TestSpendings:
         main_page \
             .toolbar.new_spending_click() \
             .input_spending(self.test_spend) \
-            .save.click()
+            .save_click()
         main_page \
-            .table_first.should(have.text(TEST_CATEGORY).and_(have.text(self.test_spend["amount"]).and_(have.text(
-            self.test_spend["description"]))))
+            .table_first.should(have.text(TEST_CATEGORY).and_(have.text(self.test_spend.description)))
 
     @TestData.category(TEST_CATEGORY)
-    @TestData.spends(test_spend)
+    @TestData.spends([test_spend])
     def test_spending_should_be_deleted(self, category, spends, main_page):
         """Проверка, что пункт расхода удаляется из истории."""
         main_page \
-            .table_first.should(have.text("QA.GURU Python Advanced 2"))
+            .table_first.should(have.text(self.test_spend.description))
         main_page \
             .delete_spendings() \
             .spendings.should(have.text("There are no spendings"))
+
+    @TestData.category(TEST_CATEGORY)
+    @TestData.spends([test_spend])
+    def test_spending_edit(self, category, spends, main_page):
+        """Проверка, что расход редактируется."""
+        update = Spend.random(category=TEST_CATEGORY)
+
+        main_page \
+            .table_first.should(have.text(self.test_spend.description))
+        main_page \
+            .edit_first_click() \
+            .input_spending(update) \
+            .save_click()
+        main_page \
+            .table_first.should(have.text(str_total(update.amount)).and_(have.text(update.description)))
+            # todo check stat
+

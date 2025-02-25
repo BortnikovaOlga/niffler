@@ -1,14 +1,8 @@
 import pytest
-from selene import browser, have
-from page.pages import LoginPage, MainPage
+from selene import have
+from page.main_page import MainPage
 
 main_page = MainPage()
-
-
-@pytest.fixture
-def login_page(frontend_url):
-    browser.open(frontend_url)
-    return LoginPage()
 
 
 def test_auth(login_page, app_user):

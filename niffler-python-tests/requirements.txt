@@ -1,0 +1,5 @@
+selene>=2.0.0rc7
+selenium
+pytest
+requests
+python-dotenv

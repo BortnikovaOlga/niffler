@@ -1,6 +1,6 @@
 import pytest
 
-from model.spendings import Spend
+from model.web_spend import Spend
 
 
 class Pages:
@@ -10,7 +10,7 @@ class Pages:
 
 
 class TestData:
-    category = lambda x: pytest.mark.parametrize("category", [x], indirect=True)
+    category = lambda x: pytest.mark.parametrize("category", [x], indirect=True) #, ids=lambda param: param.name)
     categories = lambda x: pytest.mark.parametrize("categories", [x], indirect=True)
     spends = lambda x: pytest.mark.parametrize("spends", [x], indirect=True)  # , ids=lambda param: param.description)
 

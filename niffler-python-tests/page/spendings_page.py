@@ -2,10 +2,7 @@ from enum import StrEnum
 
 from selene import browser, Element
 
-from model.spendings import Spend
-
-
-
+from model.web_spend import Spend
 
 
 class SpendingPage:
@@ -16,14 +13,12 @@ class SpendingPage:
     currency = browser.element('#currency')
     spend_date = browser.element("input[name=date]")  # format MM DD YYYY
 
-
     def currency_item(self, name):
         return browser.element(f"li[data-value={name}]")  # RUB KZT EUR USD
 
     @staticmethod
     def category(name) -> Element:
         return browser.element(f"//div[@role='button']//span[contains(text(),'{name}')]")
-
 
     def input_spending(self, data: Spend):
         self.amount.set_value(data.amount)
@@ -41,9 +36,3 @@ class SpendingPage:
 
     def cancel_click(self):
         self.cancel.click()
-
-
-
-
-
-

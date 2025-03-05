@@ -7,6 +7,8 @@ from faker import Faker
 fake = Faker()
 main_page = MainPage()
 
+# todo : При регистрации возникает ошибка, если введены разные пароль и подтверждение пароля
+
 
 def test_register_new_user(login_page):
     """Проверка, что выполняется регистрация нового пользователя."""
@@ -24,7 +26,7 @@ def test_register_new_user(login_page):
         .username.should(have.value(username))
 
 
-def test_not_register_exist_user(login_page, app_user):
+def test_not_register_if_user_exist(login_page, app_user):
     """Проверка, что не выполняется повторная регистрация существующего пользователя."""
     username, _ = app_user
     login_page \
@@ -32,4 +34,3 @@ def test_not_register_exist_user(login_page, app_user):
         .input_data(username, "password") \
         .signup_click() \
         .form.should(have.text(f"Username `{username}` already exists"))
-

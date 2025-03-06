@@ -6,10 +6,12 @@ from page.pages import Dialog
 from page.profile import Toolbar
 from page.spendings_page import SpendingPage
 
+
 class Period(StrEnum):
     LAST_MONTH = "MONTH"
     LAST_WEEK = "WEEK"
     TODAY = "TODAY"
+
 
 class MainPage:
     delete_button = browser.element('#delete')
@@ -58,5 +60,5 @@ class MainPage:
         return self
 
     @staticmethod
-    def stat_item(category):
+    def stat_item(category: str) -> Element:
         return browser.element(f"//div[@id='stat']//li[contains(text(),'{category}')]")

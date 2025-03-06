@@ -1,3 +1,5 @@
+import time
+
 from selene import browser, Element
 
 from page.pages import Dialog
@@ -15,34 +17,47 @@ class ProfilePage:
     def __init__(self):
         self.toolbar = Toolbar(self)
 
-    def input_category(self, name):
+    def input_category(self, name: str):
         self.category.set_value(name).press_enter()
         return self
 
     def show_archived_click(self):
+        time.sleep(5)
         self.show_archived.click()
         return self
 
-    def category_item_str(self, name) -> str:
+    def category_item_str(self, name: str) -> str:
         return f"//span[contains(text(),'{name}')]"
 
-    def category_item(self, name) -> Element:
+    def category_item(self, name: str) -> Element:
         return browser.element(self.category_item_str(name))
 
-    def edit_category_click(self, name):
+    def edit_category_click(self, name: str):
         browser.element(
             f"{self.category_item_str(name)}../following-sibling::div//button[@aria-label='Edit category']").click()
         return self
 
-    def archive_button_click(self, name):
+    def archive_button_click(self, name: str):
         browser.element(
             f"{self.category_item_str(name)}/../following-sibling::div//button[@aria-label='Archive category']").click()
         return self
 
-    def archive_category(self, name):
+    def unarchive_button_click(self, name):
+        browser.element(
+            f"{self.category_item_str(name)}/../following-sibling::span[@aria-label='Unarchive category']").click()
+
+    def archive_category(self, name: str):
         self.archive_button_click(name)
         self.dialog.confirm_click()
         return self
+
+    def unarchive_category(self, name: str):
+        element = self.category_item(name)
+        browser.driver.execute_script("arguments[0].scrollIntoView(true);", element())
+        self.unarchive_button_click(name)
+        self.dialog.confirm_click()
+        return self
+
 
 class Toolbar:
     new_spending = browser.element("a[href='/spending']")
@@ -62,6 +77,6 @@ class Toolbar:
         self.profile.click()
         return self.page if isinstance(self.page, ProfilePage) else ProfilePage()
 
-    def new_spending_click(self):
+    def new_spending_click(self) -> SpendingPage:
         self.new_spending.click()
         return SpendingPage()

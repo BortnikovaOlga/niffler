@@ -1,6 +1,6 @@
 from urllib.parse import urljoin
 
-from model.spendings import Spend
+from model.web_spend import Spend
 from .http_client import HttpClient
 
 
@@ -12,9 +12,9 @@ class SpendsApi:
         self.url = f"{base_url}/api/spends"
         self.client = HttpClient(token)
 
-    def add_spends(self, body: Spend):
+    def add_spends(self, body: Spend) -> Spend:
         url = f"{self.url}/add"
-        response = self.client.post(url, data=body.model_dump_json()) # response = self.client.post(url, json=body)
+        response = self.client.post(url, data=body.model_dump_json())  # response = self.client.post(url, json=body)
         response.raise_for_status()
         return Spend.model_validate(response.json())
 

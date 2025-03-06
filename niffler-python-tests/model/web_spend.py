@@ -1,15 +1,28 @@
-from functools import reduce
 from random import randint, choice
 from datetime import date, timedelta, datetime
 from enum import StrEnum
-from pydantic import BaseModel, Field
+from uuid import UUID
+
+from pydantic import BaseModel, Field, AliasChoices
+
 from faker import Faker
 
 fake = Faker()
 
 
 class Category(BaseModel):
+    id: str | UUID | None = Field(default=None)
     name: str
+    archived: bool = Field(default=False)
+
+    @staticmethod
+    def random(archived=False):
+        return Category(name=fake.word(), archived=archived)
+
+    def __eq__(self, other):
+        if isinstance(other, Category):
+            return self.name == other.name
+        return NotImplemented
 
 
 class Currency(StrEnum):
@@ -28,12 +41,23 @@ currency_rate = {
 
 
 class Spend(BaseModel):
-    id: str | None = Field(default=None)
+    id: str | UUID | None = Field(default=None)
     amount: float
     description: str
     category: Category
-    spendDate: date | None = Field(default=None)
+    spendDate: date | None = Field(default=None, validation_alias=AliasChoices('spend_date', 'spendDate'))
     currency: str | None = Field(default=None)
+
+    def __eq__(self, other):
+        if isinstance(other, Spend):
+            return (
+                    self.amount == other.amount and
+                    self.description == other.description and
+                    self.category == other.category and
+                    self.spendDate == other.spendDate and
+                    self.currency == other.currency
+            )
+        return NotImplemented
 
     def amount_to_rub(self):
         return round(self.amount, 2) if self.amount == Currency.RUB else \
@@ -46,18 +70,16 @@ class Spend(BaseModel):
         """days_delta >= min_days_delta или равна 0."""
         d = datetime.now()
         if days_delta:
-            d -= timedelta(days=randint(min_days_delta, days_delta))
+            d -= timedelta(days=randint(min_days_delta, int(days_delta)))
         if not category:
             category = Category(name=fake.word())
         if not currency:
-            currency = choice([c.value for c in Currency])
-        return Spend(
-            amount=randint(1, 10_000),
-            description=fake.text(30),
-            category=Category(name=category),
-            spendDate=date(month=d.month, day=d.day, year=d.year),  # date.strftime('%m-%d-%Y'),
-            currency=currency
-        )
+            currency = choice([c for c in Currency])
+        return Spend(amount=randint(1, 10_000),
+                     description=fake.text(30),
+                     category=Category(name=category),
+                     spendDate=date(month=d.month, day=d.day, year=d.year),
+                     currency=currency)
 
     @staticmethod
     def random_list(category=None, currency=None):
@@ -71,9 +93,9 @@ class Spend(BaseModel):
 def total_to_rub(spends: list[Spend]):
     total = 0
     for spend in spends:
-        # spend = Spend.model_validate(spend)
         total += spend.amount_to_rub()
     return round(total, 2)
+
 
 def str_total(float_total):
     int_total = int(float_total)

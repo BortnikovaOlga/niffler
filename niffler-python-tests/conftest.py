@@ -5,6 +5,8 @@ from dotenv import load_dotenv
 from selene import browser
 from client.spends_api import SpendsApi
 from client.categories_api import CategoriesApi
+from db.spend_service import SpendDbService
+from model.web_spend import Category
 from page.login_page import LoginPage
 from page.main_page import MainPage
 from page.profile import ProfilePage
@@ -31,6 +33,16 @@ def app_user(envs):
 
 
 @pytest.fixture(scope="session")
+def spend_db_url(envs):
+    return os.getenv("SPEND_DB_URL")
+
+
+@pytest.fixture(scope="session")
+def spend_db(spend_db_url) -> SpendDbService:
+    return SpendDbService(spend_db_url)
+
+
+@pytest.fixture(scope="session")
 def auth(frontend_url, app_user):
     username, password = app_user
     browser.open(frontend_url)
@@ -53,23 +65,25 @@ def categories_api(gateway_url, auth) -> CategoriesApi:
 
 
 @pytest.fixture(params=[])
-def category(request, categories_api):
-    category_name = request.param
-    current_categories = categories_api.get_categories()
-    category_names = [category["name"] for category in current_categories]
-    if category_name not in category_names:
-        categories_api.add_category(category_name)
-    return category_name
+def category(request, categories_api) -> Category:
+    """request.param : Category."""
+    test_category = request.param
+    db_categories = categories_api.get_categories()
+    category_names = [category.name for category in db_categories]
+    if test_category.name not in category_names:
+        return categories_api.add_category(test_category)
+    return test_category
 
 
 @pytest.fixture(params=[])
-def categories(request, categories_api):
-    current_categories = categories_api.get_categories()
-    category_names = [category["name"] for category in current_categories]
+def categories(request, categories_api) -> list[str]:
+    """request.param: list[str]."""
+    db_categories = categories_api.get_categories()
+    category_names = [category.name for category in db_categories]
     categories = []
     for category_name in request.param:
         if category_name not in category_names:
-            categories_api.add_category(category_name)
+            categories_api.add_category(Category(name=category_name))
             categories.append(category_name)
     return categories
 
@@ -97,6 +111,7 @@ def main_page(auth, frontend_url):
 
 @pytest.fixture()
 def profile_page(auth, frontend_url):
+    browser.driver.maximize_window()
     browser.open(f"{frontend_url}/profile")
     return ProfilePage()
 

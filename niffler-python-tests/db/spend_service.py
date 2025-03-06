@@ -2,6 +2,7 @@ from typing import Sequence
 from uuid import UUID
 
 from sqlalchemy import create_engine, Engine
+from sqlalchemy.exc import NoResultFound
 
 from sqlmodel import Session, select
 
@@ -16,11 +17,29 @@ class SpendDbService:
         self.engine = create_engine(db_url)
 
     def get_user_categories(self, username: str) -> Sequence[web_spend.Category]:
+        """возвращает все категории для пользователя."""
         with Session(self.engine) as session:
             statement = select(Category).where(Category.username == username)
             result = session.exec(statement).all()
             if result:
                 return [web_spend.Category.model_validate(category.model_dump()) for category in result]
+
+    def get_category_by_name(self, category_name: str, username: str) -> web_spend.Category | None:
+        """возвращает информацию по категории для определенного пользователя."""
+        with Session(self.engine) as session:
+            statement = select(Category).where(Category.name == category_name).where(Category.username == username)
+            try:
+                result = session.exec(statement).one()
+                return web_spend.Category.model_validate(result.model_dump())
+            except NoResultFound:
+                return None
+
+    def get_category(self, category_id: str | UUID) -> web_spend.Category | None:
+        """возвращает информацию по ид категории."""
+        with Session(self.engine) as session:
+            category = session.get(Category, str(category_id))
+            if category:
+                return web_spend.Category.model_validate(category.model_dump())
 
     def delete_category(self, category_id: str | UUID):
         with Session(self.engine) as session:

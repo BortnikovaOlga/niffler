@@ -1,37 +1,32 @@
-from selene import be
-
 from model.web_spend import Category
 from page.marks import Pages, TestData
-from faker import Faker
-
-fake = Faker()
-
-TEST_CATEGORY_NAME = "образование"
-TEST_CATEGORY = Category(name=TEST_CATEGORY_NAME)
+from allure import Feature, Story, Tag
 
 
+@Tag("UI")
+@Feature("Профиль")
+@Story("Управление категорями расходов")
 @Pages.profile_page
 class TestCategory:
 
-    @TestData.category(TEST_CATEGORY)
+    @TestData.category(Category.random())
     def test_category_should_be_present(self, category, profile_page):
         """Проверка, что категория присутствует на странице, если она есть в бд и не архивна."""
         profile_page \
-            .category_item(category.name).should(be.visible)
+            .check_category_item_is_visible(category.name)
 
-    def test_category_should_be_added(self, profile_page):
+    def test_category_should_be_added(self, profile_page, new_category):
         """Проверка, что категория добавляется через UI-интерфейс."""
-        category = Category.random()
         profile_page \
-            .input_category(category.name) \
-            .category_item(category.name).should(be.visible)
+            .input_category(new_category.name) \
+            .check_category_item_is_visible(new_category.name)
 
     @TestData.category(Category.random())
     def test_category_should_be_archived(self, category, profile_page):
         """Проверка, что категория перемещается в архив и отображается в архиве."""
         profile_page \
             .archive_category(category.name) \
-            .category_item(category.name).should(be.not_.visible)
+            .check_category_item_is_not_visible(category.name)
         profile_page \
             .show_archived_click() \
-            .category_item(category.name).should(be.visible)
+            .check_category_item_is_visible(category.name)

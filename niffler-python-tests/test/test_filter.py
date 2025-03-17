@@ -1,8 +1,7 @@
-from selene import have
-
-from model.web_spend import Spend, Currency, str_total, Category
+from model.web_spend import Spend, Currency, Category
 from page.main_page import Period
 from page.marks import TestData
+from allure import Feature, Story, Tag
 
 TEST_CATEGORY_NAME = "образование"
 TEST_CATEGORY = Category(name=TEST_CATEGORY_NAME)
@@ -29,43 +28,40 @@ old_spend = Spend.random(category=TEST_CATEGORY_NAME,
                          )
 
 
-@TestData.category(TEST_CATEGORY)
-@TestData.spends([spend_yesterday, spend_today])
-def test_spends_filtered_by_today(category, spends, main_page):
-    """Проверка, что расходы фильтруются за текущий день + проверка статистики."""
-    total = str_total(spend_today.amount)
-    main_page \
-        .period_click() \
-        .choose_period_by(Period.TODAY)
-    main_page \
-        .table_first.should(have.text(total).and_(have.text(spend_today.description)))
-    main_page \
-        .stat_item(category.name).should(have.text(total))
+@Tag("UI")
+@Feature("Ведение расходов")
+@Story("Фильтрация расходов по периоду")
+class TestPeriodFilter:
 
+    @TestData.category(TEST_CATEGORY)
+    @TestData.spends([spend_yesterday, spend_today])
+    def test_spends_filtered_by_today(self, category, spends, main_page):
+        """Проверка, что расходы фильтруются за текущий день + проверка статистики."""
+        main_page \
+            .period_click() \
+            .choose_period_by(Period.TODAY)
+        main_page \
+            .check_table_have_text(spend_today.description) \
+            .check_stat_item_have_total(category.name, spend_today.amount)
 
-@TestData.category(TEST_CATEGORY)
-@TestData.spends([old_spend, spend_past_week])
-def test_spends_filtered_by_last_week(category, spends, main_page):
-    """Проверка, что расходы фильтруются за текущую неделю + проверка статистики."""
-    total = str_total(spend_past_week.amount)
-    main_page \
-        .period_click() \
-        .choose_period_by(Period.LAST_WEEK)
-    main_page \
-        .table_first.should(have.text(total).and_(have.text(spend_past_week.description)))
-    main_page \
-        .stat_item(category.name).should(have.text(total))
+    @TestData.category(TEST_CATEGORY)
+    @TestData.spends([old_spend, spend_past_week])
+    def test_spends_filtered_by_last_week(self, category, spends, main_page):
+        """Проверка, что расходы фильтруются за текущую неделю + проверка статистики."""
+        main_page \
+            .period_click() \
+            .choose_period_by(Period.LAST_WEEK)
+        main_page \
+            .check_table_have_text(spend_past_week.description) \
+            .check_stat_item_have_total(category.name, spend_past_week.amount)
 
-
-@TestData.category(TEST_CATEGORY)
-@TestData.spends([old_spend, spend_past_month])
-def test_spends_filtered_by_last_month(category, spends, main_page):
-    """Проверка, что расходы фильтруются за последний месяц + проверка статистики."""
-    total = str_total(spend_past_month.amount)
-    main_page \
-        .period_click() \
-        .choose_period_by(Period.LAST_MONTH)
-    main_page \
-        .table_first.should(have.text(total).and_(have.text(spend_past_month.description)))
-    main_page \
-        .stat_item(category.name).should(have.text(total))
+    @TestData.category(TEST_CATEGORY)
+    @TestData.spends([old_spend, spend_past_month])
+    def test_spends_filtered_by_last_month(self, category, spends, main_page):
+        """Проверка, что расходы фильтруются за последний месяц + проверка статистики."""
+        main_page \
+            .period_click() \
+            .choose_period_by(Period.LAST_MONTH)
+        main_page \
+            .check_table_have_text(spend_past_month.description) \
+            .check_stat_item_have_total(category.name, spend_past_month.amount)

@@ -59,14 +59,14 @@ class Spend(BaseModel):
             )
         return NotImplemented
 
-    def amount_to_rub(self):
+    def amount_to_rub(self) -> float:
         return round(self.amount, 2) if self.amount == Currency.RUB else \
             round(
                 self.amount * currency_rate[self.currency] / currency_rate[Currency.RUB.value], 2
             )
 
     @staticmethod
-    def random(category=None, currency=None, days_delta=0, min_days_delta=1):
+    def random(category: str = None, currency: str = None, days_delta=0, min_days_delta=1):
         """days_delta >= min_days_delta или равна 0."""
         d = datetime.now()
         if days_delta:
@@ -90,13 +90,13 @@ class Spend(BaseModel):
         return [Spend.random(category=cat, currency=cur) for cat, cur in zip(categories, currencies)]
 
 
-def total_to_rub(spends: list[Spend]):
+def total_to_rub(spends: list[Spend]) -> float:
     total = 0
     for spend in spends:
         total += spend.amount_to_rub()
     return round(total, 2)
 
 
-def str_total(float_total):
+def str_total(float_total) -> str:
     int_total = int(float_total)
     return str(float_total) if float_total >= int_total + 0.01 else str(int_total)

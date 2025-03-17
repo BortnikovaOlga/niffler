@@ -8,3 +8,5 @@ faker
 psycopg2
 sqlalchemy
 sqlmodel
+allure-pytest
+requests_toolbelt

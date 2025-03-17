@@ -3,6 +3,9 @@ import os
 import pytest
 from dotenv import load_dotenv
 from selene import browser
+from allure import step, attach, attachment_type
+from allure_commons.reporter import AllureReporter
+from allure_pytest.listener import AllureListener
 from client.spends_api import SpendsApi
 from client.categories_api import CategoriesApi
 from db.spend_service import SpendDbService
@@ -65,18 +68,23 @@ def categories_api(gateway_url, auth) -> CategoriesApi:
 
 
 @pytest.fixture(params=[])
-def category(request, categories_api) -> Category:
+def category(request, categories_api, spend_db, app_user) -> Category:
     """request.param : Category."""
     test_category = request.param
-    db_categories = categories_api.get_categories()
-    category_names = [category.name for category in db_categories]
-    if test_category.name not in category_names:
-        return categories_api.add_category(test_category)
-    return test_category
+    with step("проверить наличие и добавить категорию"):
+        db_categories = categories_api.get_categories()
+        category_names = [category.name for category in db_categories]
+        if test_category.name not in category_names:
+            test_category = categories_api.add_category(test_category)
+    yield test_category
+    with step("удалить категорию"):
+        result = spend_db.get_category_by_name(test_category.name, app_user[0])
+        if result:
+            spend_db.delete_category(result.id)
 
 
 @pytest.fixture(params=[])
-def categories(request, categories_api) -> list[str]:
+def categories(request, categories_api, spend_db, app_user) -> list[str]:
     """request.param: list[str]."""
     db_categories = categories_api.get_categories()
     category_names = [category.name for category in db_categories]
@@ -85,21 +93,27 @@ def categories(request, categories_api) -> list[str]:
         if category_name not in category_names:
             categories_api.add_category(Category(name=category_name))
             categories.append(category_name)
-    return categories
+    yield categories
+    with step("удалить категории"):
+        for category in categories:
+            result = spend_db.get_category_by_name(category, app_user[0])
+            if result:
+                spend_db.delete_category(result.id)
 
 
 @pytest.fixture(params=[])
 def spends(request, spends_api):
     spends = []
-    for spend in request.param:
-        spends.append(spends_api.add_spends(spend))
+    with step("добавить список расходов"):
+        for spend in request.param:
+            spends.append(spends_api.add_spends(spend))
     yield spends
-    try:
-        # TODO вместо исключения проверить список текущих spends
-        spends_api.remove_spends([s.id for s in spends])
-        pass
-    except Exception:
-        pass
+    with step("удалить расходы"):
+        try:
+            # TODO вместо исключения проверить список текущих spends
+            spends_api.remove_spends([s.id for s in spends])
+        except Exception:
+            pass
 
 
 @pytest.fixture()
@@ -120,3 +134,37 @@ def profile_page(auth, frontend_url):
 def login_page(frontend_url):
     browser.open(frontend_url)
     return LoginPage()
+
+
+def allure_reporter(config) -> AllureReporter:
+    listener: AllureListener = next(
+        filter(
+            lambda plugin: (isinstance(plugin, AllureListener)),
+            dict(config.pluginmanager.list_name_plugin()).values(),
+        ),
+        None,
+    )
+    return getattr(listener, "allure_logger", None)
+
+
+@pytest.hookimpl(hookwrapper=True, tryfirst=True)
+def pytest_runtest_teardown(item):
+    yield
+    reporter = allure_reporter(item.config)
+    if reporter:
+        test = reporter.get_test(None)
+        test.labels = list(
+            filter(lambda x: not (x.name == "tag" and "@pytest.mark.usefixtures" in x.value),
+                   test.labels)
+        )
+
+
+@pytest.hookimpl(tryfirst=True, hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    outcome = yield
+    rep = outcome.get_result()
+    if rep.when == "call" and rep.failed:
+        try:
+            attach(browser.driver.get_screenshot_as_png(), name="screenshot", attachment_type=attachment_type.PNG)
+        except Exception as e:
+            pass  # logger.error("Fail to take screen-shot: {}".format(e))

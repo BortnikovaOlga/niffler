@@ -1,6 +1,8 @@
 import requests
 from requests import Response
-
+from allure_commons.types import AttachmentType
+from requests_toolbelt.utils.dump import dump_response
+from allure import attach
 
 class HttpClient:
 
@@ -12,6 +14,7 @@ class HttpClient:
             'Authorization': f'Bearer {token}',
             'Content-Type': 'application/json'
         })
+        self._session.hooks["response"].append(self.attach_response)
 
     def set_headers(self, headers):
         self._session.headers.update(headers)
@@ -21,6 +24,11 @@ class HttpClient:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self._session.close()
+
+    @staticmethod
+    def attach_response(response: Response, *args, **kwargs):
+        attachment_name = response.request.method + " " + response.request.url
+        attach(dump_response(response), attachment_name, attachment_type=AttachmentType.TEXT)
 
     def request(self, method: str, url: str, **kwargs) -> Response:
         """

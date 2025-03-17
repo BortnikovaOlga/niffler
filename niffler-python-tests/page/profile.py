@@ -1,6 +1,7 @@
-import time
+from typing import Self
 
-from selene import browser, Element
+from allure import step
+from selene import browser, Element, command, be, have
 
 from page.pages import Dialog
 from page.spendings_page import SpendingPage
@@ -17,43 +18,68 @@ class ProfilePage:
     def __init__(self):
         self.toolbar = Toolbar(self)
 
-    def input_category(self, name: str):
+    @step("проверка, что имя пользователя соответствует ожидаемому {0}")
+    def check_username_is(self, expected_name: str) -> Self:
+        self.username.should(have.value(expected_name))
+        return self
+
+    @step("ввод новой категории : {0}")
+    def input_category(self, name: str) -> Self:
         self.category.set_value(name).press_enter()
         return self
 
-    def show_archived_click(self):
-        time.sleep(5)
+    @step("переключить свитчер 'Показать архивные'")
+    def show_archived_click(self) -> Self:
         self.show_archived.click()
         return self
 
-    def category_item_str(self, name: str) -> str:
+    def category_item_locator(self, name: str) -> str:
         return f"//span[contains(text(),'{name}')]"
 
     def category_item(self, name: str) -> Element:
-        return browser.element(self.category_item_str(name))
+        return browser.element(self.category_item_locator(name))
 
-    def edit_category_click(self, name: str):
-        browser.element(
-            f"{self.category_item_str(name)}../following-sibling::div//button[@aria-label='Edit category']").click()
+    @step("Проверка, что плашка категории есть(видима) на странице")
+    def check_category_item_is_visible(self, name: str) -> Self:
+        self.category_item(name).should(be.visible)
         return self
 
-    def archive_button_click(self, name: str):
-        browser.element(
-            f"{self.category_item_str(name)}/../following-sibling::div//button[@aria-label='Archive category']").click()
+    @step("Проверка, что плашки категории нет(не видима) на странице")
+    def check_category_item_is_not_visible(self, name: str) -> Self:
+        self.category_item(name).should(be.not_.visible)
         return self
 
-    def unarchive_button_click(self, name):
+    @step("нажать кнопку 'Редактор категории' {0}")
+    def edit_category_click(self, name: str) -> Self:
         browser.element(
-            f"{self.category_item_str(name)}/../following-sibling::span[@aria-label='Unarchive category']").click()
+            f"{self.category_item_locator(name)}../following-sibling::div//button[@aria-label='Edit category']") \
+            .click()
+        return self
 
-    def archive_category(self, name: str):
+    @step("нажать кнопку 'Архивировать категорию'")
+    def archive_button_click(self, name: str) -> Self:
+        browser.element(
+            f"{self.category_item_locator(name)}/../following-sibling::div//button[@aria-label='Archive category']") \
+            .click()
+        return self
+
+    @step("нажать кнопку 'Вернуть из архива'")
+    def unarchive_button_click(self, name) -> Self:
+        browser.element(
+            f"{self.category_item_locator(name)}/../following-sibling::span[@aria-label='Unarchive category']") \
+            .click()
+        return self
+
+    @step("Архивировать категорию")
+    def archive_category(self, name: str) -> Self:
         self.archive_button_click(name)
         self.dialog.confirm_click()
         return self
 
-    def unarchive_category(self, name: str):
-        element = self.category_item(name)
-        browser.driver.execute_script("arguments[0].scrollIntoView(true);", element())
+    @step("Разархивировать категорию")
+    def unarchive_category(self, name: str) -> Self:
+        category = self.category_item(name)
+        category.perform(command.js.scroll_into_view)  # execute_script(JScripts.SCROLL_TO_ELEMENT, category())
         self.unarchive_button_click(name)
         self.dialog.confirm_click()
         return self
@@ -69,14 +95,17 @@ class Toolbar:
     def __init__(self, page):
         self.page = page
 
-    def menu_click(self):
+    @step("нажать иконку на тулбаре")
+    def menu_click(self) -> Self:
         self.menu_button.click()
         return self
 
+    @step("пункт мею 'Профиль'")
     def profile_click(self) -> ProfilePage:
         self.profile.click()
         return self.page if isinstance(self.page, ProfilePage) else ProfilePage()
 
+    @step("нажать кнопку 'Добавить расход (New spending)'")
     def new_spending_click(self) -> SpendingPage:
         self.new_spending.click()
         return SpendingPage()

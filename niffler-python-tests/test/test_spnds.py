@@ -2,15 +2,15 @@ import pytest
 from selene import have
 from model.web_spend import Spend, Category, str_total
 from page.marks import TestData
-from allure import Feature, Story, Tag
+from allure import feature, story, tag
 
 TEST_DELETE_CATEGORY = Category.random()
 TEST_EDIT_CATEGORY = Category.random()
 
 
-@Tag("UI")
-@Feature("Ведение расходов")
-@Story("Управление записями расходов")
+@tag("UI")
+@feature("Ведение расходов")
+@story("Управление записями расходов")
 class TestSpendings:
 
     def test_spending_title_exists(self, main_page):

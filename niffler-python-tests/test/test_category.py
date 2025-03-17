@@ -1,11 +1,11 @@
 from model.web_spend import Category
 from page.marks import Pages, TestData
-from allure import Feature, Story, Tag
+from allure import feature, story, tag
 
 
-@Tag("UI")
-@Feature("Профиль")
-@Story("Управление категорями расходов")
+@tag("UI")
+@feature("Профиль")
+@story("Управление категорями расходов")
 @Pages.profile_page
 class TestCategory:
 

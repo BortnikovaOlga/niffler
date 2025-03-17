@@ -1,6 +1,6 @@
 from model.web_spend import Spend, Currency, total_to_rub, Category
 from page.marks import TestData, TestListData
-from allure import Feature, Story, Tag
+from allure import feature, story, tag
 
 TEST_CATEGORY_NAME = "образование"
 TEST_CATEGORY = Category(name=TEST_CATEGORY_NAME)
@@ -8,9 +8,9 @@ TEST_CATEGORIES = ["образование", "хобби", "проезд", "од
 TEST_CURRENCIES = [currency for currency in Currency]
 
 
-@Tag("UI")
-@Feature("Ведение расходов")
-@Story("Статистика с участием разной валюты")
+@tag("UI")
+@feature("Ведение расходов")
+@story("Статистика с участием разной валюты")
 class TestStatCurrency:
 
     @TestData.category(TEST_CATEGORY)

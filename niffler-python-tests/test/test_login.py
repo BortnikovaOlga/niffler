@@ -1,13 +1,13 @@
 from selene import have
 from page.main_page import MainPage
-from allure import Feature, Story, Tag
+from allure import feature, story, tag
 
 main_page = MainPage()
 
 
-@Tag("UI")
-@Feature("Профиль")
-@Story("Управление категорями расходов")
+@tag("UI")
+@feature("Учетная запись пользователя")
+@story("Авторизация")
 class TestAuth:
 
     def test_auth(self, login_page, app_user):

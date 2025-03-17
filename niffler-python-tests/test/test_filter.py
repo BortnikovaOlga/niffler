@@ -1,7 +1,7 @@
 from model.web_spend import Spend, Currency, Category
 from page.main_page import Period
 from page.marks import TestData
-from allure import Feature, Story, Tag
+from allure import feature, story, tag
 
 TEST_CATEGORY_NAME = "образование"
 TEST_CATEGORY = Category(name=TEST_CATEGORY_NAME)
@@ -28,9 +28,9 @@ old_spend = Spend.random(category=TEST_CATEGORY_NAME,
                          )
 
 
-@Tag("UI")
-@Feature("Ведение расходов")
-@Story("Фильтрация расходов по периоду")
+@tag("UI")
+@feature("Ведение расходов")
+@story("Фильтрация расходов по периоду")
 class TestPeriodFilter:
 
     @TestData.category(TEST_CATEGORY)

@@ -4,16 +4,21 @@ import pytest
 from selene import have
 from model.web_spend import Spend, Category
 from page.marks import TestData
+from allure import feature, story, tag
 from test.helpers import assert_with_allure
 
 TEST_CATEGORY_NAME = "образование"
 TEST_CATEGORY = Category(name=TEST_CATEGORY_NAME)
 
 
+@tag("DB")
+@feature("Ведение расходов")
+@story("Управление записями расходов")
 class TestSpendDB:
 
+    @pytest.mark.usefixtures("delete_spends")
     @TestData.category(Category.random())
-    def test_spend_when_add_in_ui_then_added_in_db(self, category, spend_db, app_user, main_page, delete_spends):
+    def test_spend_when_add_in_ui_then_added_in_db(self, category, spend_db, app_user, main_page):
         """Проверка, что расход сохраняется в БД, когда добавляется через UI."""
         test_spend = Spend.random(category=category.name)
         user_name, _ = app_user

@@ -1,5 +1,6 @@
 from page.main_page import MainPage
 from faker import Faker
+from allure import feature, story, tag
 
 from page.profile import ProfilePage
 
@@ -7,6 +8,9 @@ fake = Faker()
 main_page = MainPage()
 # profile_page/ = ProfilePage()
 
+@tag("UI")
+@feature("Учетная запись пользователя")
+@story("Регистрация")
 class TestRegister:
 
     def test_register_new_user(self, login_page):

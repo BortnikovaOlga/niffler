@@ -10,9 +10,9 @@ main_page = MainPage()
 @story("Авторизация")
 class TestAuth:
 
-    def test_auth(self, login_page, app_user):
+    def test_auth(self, login_page, envs):
         """Вход с тестовым паролем и логином, проверка - профиль соответствует username."""
-        username, password = app_user
+        username, password = envs.test_username, envs.test_password
         login_page \
             .login(username, password)
         main_page.toolbar \

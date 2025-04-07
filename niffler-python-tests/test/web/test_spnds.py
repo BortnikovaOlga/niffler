@@ -30,9 +30,9 @@ class TestSpendings:
             .check_no_spends()
 
     @pytest.fixture
-    def delete_spends(self, spend_db, app_user):
+    def delete_spends(self, spend_db, envs):
         yield
-        spend_db.delete_spends_by_user(app_user[0])
+        spend_db.delete_spends_by_user(envs.test_username)
 
     @TestData.category(Category.random())
     def test_add_spend(self, category, main_page, delete_spends):

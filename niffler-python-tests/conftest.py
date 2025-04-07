@@ -1,14 +1,19 @@
 import os
 
+import dotenv
 import pytest
-from dotenv import load_dotenv
+
 from selene import browser
 from allure import step, attach, attachment_type
 from allure_commons.reporter import AllureReporter
 from allure_pytest.listener import AllureListener
+from selenium.webdriver.chrome.options import Options
+
+from client.oauth_client import OAuthClient
 from client.spends_api import SpendsApi
 from client.categories_api import CategoriesApi
 from db.spend_service import SpendDbService
+from model.envs import Envs
 from model.web_spend import Category
 from page.login_page import LoginPage
 from page.main_page import MainPage
@@ -16,59 +21,72 @@ from page.profile import ProfilePage
 
 
 @pytest.fixture(scope="session")
-def envs():
-    load_dotenv()
+def envs() -> Envs:
+    dotenv.load_dotenv()
+    envs_instance = Envs(
+        frontend_url=os.getenv("FRONTEND_URL"),
+        gateway_url=os.getenv("GATEWAY_URL"),
+        db_engine=os.getenv("SPEND_DB_URL"),
+        test_username=os.getenv("TEST_USERNAME"),
+        test_password=os.getenv("TEST_PASSWORD"),
+        auth_url=os.getenv("AUTH_URL"),
+        auth_secret=os.getenv("AUTH_SECRET"),
+    )
+    return envs_instance
 
 
 @pytest.fixture(scope="session")
-def frontend_url(envs):
-    return os.getenv("FRONTEND_URL")
+def spend_db(envs) -> SpendDbService:
+    return SpendDbService(envs.db_engine)
+
+
+# @pytest.fixture(scope="session")
+# def auth(envs):
+#     browser.open(envs.frontend_url)
+#
+#     browser.element('input[name=username]').set_value(envs.test_username)
+#     browser.element('input[name=password]').set_value(envs.test_password)
+#     browser.element('button[type=submit]').click()
+#
+#     return browser.driver.execute_script('return window.localStorage.getItem("id_token")')
 
 
 @pytest.fixture(scope="session")
-def gateway_url(envs):
-    return os.getenv("GATEWAY_URL")
+def auth_token(envs: Envs):
+    return OAuthClient(envs).get_token(envs.test_username, envs.test_password)
 
 
 @pytest.fixture(scope="session")
-def app_user(envs):
-    return os.getenv("TEST_USERNAME"), os.getenv("TEST_PASSWORD")
+def auth_browser_config(auth_token):
+    options = Options()
+    # options.add_argument("--headless")
+    options.add_argument("--start-maximized")
+    options.add_argument("--disable-site-isolation-trials")  # Отключает изоляцию сайтов
+    options.add_argument("--allow-file-access-from-files")  # Разрешает доступ к файлам
+    # options.add_argument("--disable-redirects")
+    options.add_argument("--remote-debugging-port=9222")  # Включаем DevTools
+
+    browser.config.driver_options = options
+    browser.config.timeout = 10
+    browser.driver.execute_cdp_cmd(
+        "Page.addScriptToEvaluateOnNewDocument",
+        {"source": f"localStorage.setItem('id_token', '{auth_token}');"}
+    )
+    browser.driver.refresh()
 
 
 @pytest.fixture(scope="session")
-def spend_db_url(envs):
-    return os.getenv("SPEND_DB_URL")
+def spends_api(envs, auth_token) -> SpendsApi:
+    return SpendsApi(envs.gateway_url, auth_token)
 
 
 @pytest.fixture(scope="session")
-def spend_db(spend_db_url) -> SpendDbService:
-    return SpendDbService(spend_db_url)
-
-
-@pytest.fixture(scope="session")
-def auth(frontend_url, app_user):
-    username, password = app_user
-    browser.open(frontend_url)
-
-    browser.element('input[name=username]').set_value(username)
-    browser.element('input[name=password]').set_value(password)
-    browser.element('button[type=submit]').click()
-
-    return browser.driver.execute_script('return window.localStorage.getItem("id_token")')
-
-
-@pytest.fixture(scope="session")
-def spends_api(gateway_url, auth) -> SpendsApi:
-    return SpendsApi(gateway_url, auth)
-
-
-@pytest.fixture(scope="session")
-def categories_api(gateway_url, auth) -> CategoriesApi:
-    return CategoriesApi(gateway_url, auth)
+def categories_api(envs, auth_token) -> CategoriesApi:
+    return CategoriesApi(envs.gateway_url, auth_token)
 
 
 @pytest.fixture(params=[])
-def category(request, categories_api, spend_db, app_user) -> Category:
+def category(request, categories_api, spend_db, envs) -> Category:
     """request.param : Category."""
     test_category = request.param
     with step("проверить наличие и добавить категорию"):
@@ -78,13 +96,13 @@ def category(request, categories_api, spend_db, app_user) -> Category:
             test_category = categories_api.add_category(test_category)
     yield test_category
     with step("удалить категорию"):
-        result = spend_db.get_category_by_name(test_category.name, app_user[0])
+        result = spend_db.get_category_by_name(test_category.name, envs.test_username)
         if result:
             spend_db.delete_category(result.id)
 
 
 @pytest.fixture(params=[])
-def categories(request, categories_api, spend_db, app_user) -> list[str]:
+def categories(request, categories_api, spend_db, envs) -> list[str]:
     """request.param: list[str]."""
     db_categories = categories_api.get_categories()
     category_names = [category.name for category in db_categories]
@@ -96,7 +114,7 @@ def categories(request, categories_api, spend_db, app_user) -> list[str]:
     yield categories
     with step("удалить категории"):
         for category in categories:
-            result = spend_db.get_category_by_name(category, app_user[0])
+            result = spend_db.get_category_by_name(category, envs.test_username)
             if result:
                 spend_db.delete_category(result.id)
 
@@ -106,7 +124,7 @@ def spends(request, spends_api):
     spends = []
     with step("добавить список расходов"):
         for spend in request.param:
-            spends.append(spends_api.add_spends(spend))
+            spends.append(spends_api.add_spend(spend))
     yield spends
     with step("удалить расходы"):
         try:
@@ -117,22 +135,21 @@ def spends(request, spends_api):
 
 
 @pytest.fixture()
-def main_page(auth, frontend_url):
+def main_page(auth_browser_config, envs):
     browser.driver.maximize_window()
-    browser.open(frontend_url)
+    browser.open(envs.frontend_url)
     return MainPage()
 
 
 @pytest.fixture()
-def profile_page(auth, frontend_url):
-    browser.driver.maximize_window()
-    browser.open(f"{frontend_url}/profile")
+def profile_page(auth_browser_config, envs):
+    browser.open(f"{envs.frontend_url}/profile")
     return ProfilePage()
 
 
 @pytest.fixture
-def login_page(frontend_url):
-    browser.open(frontend_url)
+def login_page(envs):
+    browser.open(envs.frontend_url)
     return LoginPage()
 
 

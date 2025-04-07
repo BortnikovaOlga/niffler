@@ -18,10 +18,10 @@ class TestSpendDB:
 
     @pytest.mark.usefixtures("delete_spends")
     @TestData.category(Category.random())
-    def test_spend_when_add_in_ui_then_added_in_db(self, category, spend_db, app_user, main_page):
+    def test_spend_when_add_in_ui_then_added_in_db(self, category, spend_db, envs, main_page):
         """Проверка, что расход сохраняется в БД, когда добавляется через UI."""
         test_spend = Spend.random(category=category.name)
-        user_name, _ = app_user
+        user_name = envs.test_username
 
         main_page \
             .toolbar.new_spending_click() \
@@ -40,9 +40,9 @@ class TestSpendDB:
 
     @TestData.category(TEST_CATEGORY)
     @TestData.spends([Spend.random(category=TEST_CATEGORY_NAME)])
-    def test_spend_when_delete_in_ui_then_deleted_from_db(self, category, spends, spend_db, app_user, main_page):
+    def test_spend_when_delete_in_ui_then_deleted_from_db(self, category, spends, spend_db, envs, main_page):
         """Проверка, что расходов нет в БД, когда расходы удаляются через UI."""
-        user_name, _ = app_user
+        user_name = envs.test_username
 
         main_page \
             .table_first.should(have.text(spends[0].description))
@@ -58,9 +58,9 @@ class TestSpendDB:
 
     @TestData.category(TEST_CATEGORY)
     @TestData.spends([Spend.random(category=TEST_CATEGORY_NAME, days_delta=2)])
-    def test_spend_when_edit_in_ui_then_updated_in_db(self, category, spends, spend_db, app_user, main_page):
+    def test_spend_when_edit_in_ui_then_updated_in_db(self, category, spends, spend_db, envs, main_page):
         """Проверка, что расход обновляется в БД, когда обновляется через UI."""
-        user_name, _ = app_user
+        user_name = envs.test_username
         update = Spend.random(category=category.name)
 
         main_page \
@@ -82,10 +82,10 @@ class TestSpendDB:
 
     def test_category_when_add_in_ui_then_added_in_db_and_not_archived(self,
                                                                        new_category,
-                                                                       spend_db, app_user,
+                                                                       spend_db, envs,
                                                                        profile_page):
         """Проверка, что категория добавляется в БД и не архивна, когда добавляется через UI."""
-        user_name, _ = app_user
+        user_name = envs.test_username
 
         profile_page \
             .input_category(new_category.name)

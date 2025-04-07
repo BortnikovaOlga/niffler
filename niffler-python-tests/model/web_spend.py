@@ -1,9 +1,11 @@
 from random import randint, choice
 from datetime import date, timedelta, datetime
+
 from enum import StrEnum
 from uuid import UUID
+from zoneinfo import ZoneInfo
 
-from pydantic import BaseModel, Field, AliasChoices
+from pydantic import BaseModel, Field, AliasChoices, field_validator
 
 from faker import Faker
 
@@ -47,6 +49,20 @@ class Spend(BaseModel):
     category: Category
     spendDate: date | None = Field(default=None, validation_alias=AliasChoices('spend_date', 'spendDate'))
     currency: str | None = Field(default=None)
+
+
+    @field_validator("spendDate", mode='before')
+    @classmethod
+    def check_spendDate(cls, value):
+        if isinstance(value, date):
+            return value
+        if isinstance(value, datetime):
+            return date(value.year, value.month, value.day)
+        if isinstance(value, str):
+            # from dateutil import tz tz.tzlocal())
+            dt = datetime.fromisoformat(value).astimezone(ZoneInfo("Europe/Moscow"))
+            return dt.date()
+        raise ValueError(f"spendDate validation error, for type value :{type(value)}")
 
     def __eq__(self, other):
         if isinstance(other, Spend):

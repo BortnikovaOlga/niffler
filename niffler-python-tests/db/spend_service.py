@@ -84,3 +84,10 @@ class SpendDbService:
             if results:
                 return [web_spend.Spend.model_validate({**spend.model_dump(), "category": category.model_dump()}) \
                         for spend, category in results]
+
+    def get_spend_by_id(self, spend_id: str | UUID) -> web_spend.Spend:
+        with Session(self.engine) as session:
+            spend = session.get(Spend, str(spend_id))
+            if spend:
+                category = session.get(Category, str(spend.category_id))
+                return web_spend.Spend.model_validate({**spend.model_dump(), "category": category.model_dump()})

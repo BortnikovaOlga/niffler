@@ -31,9 +31,9 @@ class TestRegister:
             .check_username_is(username)
 
 
-    def test_not_register_if_user_exist(self, login_page, app_user):
+    def test_not_register_if_user_exist(self, login_page, envs):
         """Проверка, что не выполняется повторная регистрация существующего пользователя."""
-        username, _ = app_user
+        username = envs.test_username
         login_page \
             .register_button_click() \
             .input_data(username, fake.password()) \
